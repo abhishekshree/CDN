@@ -15,7 +15,7 @@ type Uploads struct {
 
 type Zips struct {
 	gorm.Model
-	Files      []string  `json:"files"`
+	Files      string    `json:"files"`
 	OutFile    string    `json:"outfile"`
 	AccessedAt time.Time `json:"accessed_at"`
 }

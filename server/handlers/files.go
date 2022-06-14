@@ -3,22 +3,26 @@ package handlers
 import (
 	"log"
 
+	"github.com/abhishekshree/cdn/db"
 	"github.com/abhishekshree/cdn/utils"
 	"github.com/gin-gonic/gin"
+	"github.com/spf13/viper"
 )
 
-const MAX_SIZE = 5000000000
-
-const upload_folder = "cdn"
-
-const allowed_filetypes = "application/pdf"
-
 func UploadFileHandler(ctx *gin.Context) {
+	MAX_SIZE := viper.GetInt64("MAX_SIZE")
+	upload_folder := viper.GetString("FOLDERS.CDN")
+	allowed_filetypes := viper.GetString("ALLOWED_FILETYPES")
+	sep := viper.GetString("SEP")
+
+	uid := ctx.GetHeader("token")
+
 	file, err := ctx.FormFile("file")
 	if err != nil {
 		ctx.AbortWithStatusJSON(400, gin.H{"error": err.Error()})
 		return
 	}
+
 	if file.Size > MAX_SIZE {
 		log.Printf("%v size is too large \n", file.Filename)
 		ctx.AbortWithStatusJSON(400, gin.H{"error": "File size is too large"})
@@ -37,28 +41,36 @@ func UploadFileHandler(ctx *gin.Context) {
 		return
 	}
 
-	ctx.SaveUploadedFile(file, upload_folder+"/"+uuid+"__"+file.Filename)
-	log.Println(file.Filename + " to " + uuid + "__" + file.Filename)
+	newname := uuid + sep + file.Filename
+	ctx.SaveUploadedFile(file, upload_folder+"/"+newname)
+	log.Println(file.Filename + " to " + newname)
+
+	db.CreateUpload(uid, newname)
+
 	ctx.JSON(200, gin.H{
 		"message":  "uploaded",
-		"filename": uuid + "__" + file.Filename,
+		"filename": newname,
 	})
 }
 
 func ViewAllHandler(ctx *gin.Context) {
+	upload_folder := viper.GetString("FOLDERS.CDN")
+
 	files, err := utils.ListFiles(upload_folder)
 	if err != nil {
 		ctx.AbortWithStatusJSON(400, gin.H{"error": err.Error()})
 		return
 	}
+
 	ctx.JSON(200, gin.H{
 		"files": files,
 	})
 }
 
 func ViewFileHandler(ctx *gin.Context) {
+	upload_folder := viper.GetString("FOLDERS.CDN")
+
 	filename := ctx.Param("filename")
-	// send file
 	ctx.File(upload_folder + "/" + filename)
 }
 
@@ -67,13 +79,15 @@ type DeleteRequest struct {
 }
 
 func DeleteFileHandler(ctx *gin.Context) {
+	upload_folder := viper.GetString("FOLDERS.CDN")
+
 	var req DeleteRequest
 	if err := ctx.BindJSON(&req); err != nil {
 		ctx.AbortWithStatusJSON(400, gin.H{"error": err.Error()})
 		return
 	}
 
-	//TOSO: can add some secret code before deletion later for security
+	//TODO: can add some secret code before deletion later for security
 	filename := req.Filename
 
 	ok := utils.DeleteFile(upload_folder + "/" + filename)
@@ -83,28 +97,5 @@ func DeleteFileHandler(ctx *gin.Context) {
 	}
 	ctx.JSON(200, gin.H{
 		"message": "deleted",
-	})
-}
-
-type ZipRequest struct {
-	Files   []string `json:"files"`
-	OutFile string   `json:"outfile"`
-}
-
-func ZipFilesHandler(ctx *gin.Context) {
-	var req ZipRequest
-	if err := ctx.BindJSON(&req); err != nil {
-		ctx.AbortWithStatusJSON(400, gin.H{"error": err.Error()})
-		return
-	}
-
-	filename, err := utils.ZipFiles(req.Files, req.OutFile)
-	if err != nil {
-		ctx.AbortWithStatusJSON(400, gin.H{"error": err.Error()})
-		return
-	}
-	ctx.JSON(200, gin.H{
-		"message":  "zipped",
-		"filename": filename,
 	})
 }

@@ -17,7 +17,10 @@ func main() {
 		fs.DELETE("/delete", handlers.DeleteFileHandler)
 		fs.GET("/view/:filename", handlers.ViewFileHandler)
 		fs.GET("/view/all", handlers.ViewAllHandler)
+		fs.GET("/zip/:filename", handlers.DownloadZipHandler)
 		fs.POST("/zip", handlers.ZipFilesHandler)
+		fs.DELETE("/zip", handlers.DeleteOneZipHandler)
+		fs.DELETE("/zip/all", handlers.DeleteZipsHandler)
 	}
 
 	r.Use(gin.Logger())
