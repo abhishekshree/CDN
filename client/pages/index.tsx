@@ -46,7 +46,7 @@ const Home: NextPage = () => {
       </div>
         <ul>
           {viewAll.map((item, index) => {
-            return <li key={index}><a href={"http://localhost:8080/api/view?filename=" + item}>{item.split('__').slice(1)}</a></li>
+            return <li key={index}><a href={"http://localhost:8080/api/view/" + item}>{item.split('__').slice(1)}</a></li>
           }
           )}
         </ul>  
