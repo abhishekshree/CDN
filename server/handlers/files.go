@@ -7,7 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-const MAX_SIZE = 500000
+const MAX_SIZE = 5000000000
 
 const upload_folder = "cdn"
 
@@ -37,11 +37,11 @@ func UploadFileHandler(ctx *gin.Context) {
 		return
 	}
 
-	ctx.SaveUploadedFile(file, upload_folder+"/"+uuid+"_"+file.Filename)
+	ctx.SaveUploadedFile(file, upload_folder+"/"+uuid+"__"+file.Filename)
 	log.Println(file.Filename + " to " + uuid + "__" + file.Filename)
 	ctx.JSON(200, gin.H{
 		"message":  "uploaded",
-		"filename": uuid + "_" + file.Filename,
+		"filename": uuid + "__" + file.Filename,
 	})
 }
 
@@ -60,4 +60,51 @@ func ViewFileHandler(ctx *gin.Context) {
 	filename := ctx.Param("filename")
 	// send file
 	ctx.File(upload_folder + "/" + filename)
+}
+
+type DeleteRequest struct {
+	Filename string `json:"filename"`
+}
+
+func DeleteFileHandler(ctx *gin.Context) {
+	var req DeleteRequest
+	if err := ctx.BindJSON(&req); err != nil {
+		ctx.AbortWithStatusJSON(400, gin.H{"error": err.Error()})
+		return
+	}
+
+	//TOSO: can add some secret code before deletion later for security
+	filename := req.Filename
+
+	ok := utils.DeleteFile(upload_folder + "/" + filename)
+	if !ok {
+		ctx.AbortWithStatusJSON(400, gin.H{"error": "Could not delete file"})
+		return
+	}
+	ctx.JSON(200, gin.H{
+		"message": "deleted",
+	})
+}
+
+type ZipRequest struct {
+	Files   []string `json:"files"`
+	OutFile string   `json:"outfile"`
+}
+
+func ZipFilesHandler(ctx *gin.Context) {
+	var req ZipRequest
+	if err := ctx.BindJSON(&req); err != nil {
+		ctx.AbortWithStatusJSON(400, gin.H{"error": err.Error()})
+		return
+	}
+
+	filename, err := utils.ZipFiles(req.Files, req.OutFile)
+	if err != nil {
+		ctx.AbortWithStatusJSON(400, gin.H{"error": err.Error()})
+		return
+	}
+	ctx.JSON(200, gin.H{
+		"message":  "zipped",
+		"filename": filename,
+	})
 }

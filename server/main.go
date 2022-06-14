@@ -17,10 +17,10 @@ func main() {
 	fs := r.Group("/api/")
 	{
 		fs.POST("/upload", handlers.UploadFileHandler)
-		fs.DELETE("/delete", handlers.HelloHandler)
-		fs.GET("/view", handlers.ViewFileHandler)
+		fs.DELETE("/delete", handlers.DeleteFileHandler)
+		fs.GET("/view/:filename", handlers.ViewFileHandler)
 		fs.GET("/view/all", handlers.ViewAllHandler)
-		fs.POST("/zip", handlers.HelloHandler)
+		fs.POST("/zip", handlers.ZipFilesHandler)
 	}
 
 	r.Use(gin.Logger())
@@ -58,6 +58,11 @@ func CORS() gin.HandlerFunc {
 
 func initFolder() {
 	x := "cdn"
+	if _, err := os.Stat(x); os.IsNotExist(err) {
+		os.Mkdir(x, 0755)
+	}
+
+	x = "zip"
 	if _, err := os.Stat(x); os.IsNotExist(err) {
 		os.Mkdir(x, 0755)
 	}
